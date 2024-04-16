@@ -2,6 +2,9 @@
     "idf.adapterTargetName": "esp32",
     "files.associations": {
         "stdarg.h": "c",
-        "err.h": "c"
+        "err.h": "c",
+        "socket": "c",
+        "functional": "c",
+        "sockets.h": "c"
     }
 }

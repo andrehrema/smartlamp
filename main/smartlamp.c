@@ -11,11 +11,15 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
+#include "tcpclient.h"
+
 #define WIFI_START_BIT BIT0
 #define WIFI_SCAN_BIT BIT1
 #define WIFI_CONNECTED_BIT BIT2
 #define WIFI_FAIL_BIT BIT3
 #define RECEIVED_IP BIT4
+
+#define MQTT_BROKER_ADDRESS "192.168.10.1"
 
 static const char *TAG = "wifi station";
 
@@ -133,9 +137,17 @@ void configureWifi()
 
 void smartLampMainTask(void *pvParameters)
 {
+    int tcpSocketFd = tcpCreateClientSocket(MQTT_BROKER_ADDRESS, 8883);
     while (1)
     {
+        xEventGroupWaitBits(s_wifiEventGroup,
+        WIFI_CONNECTED_BIT,
+        pdFALSE,
+        pdTRUE,
+        portMAX_DELAY);
+
         //TODO: Implement an mqtt communication
+
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
