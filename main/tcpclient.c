@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include "tcpclient.h"
+#include <sys/poll.h>
 
 #define LOG_TAG "socket_client"
 
@@ -41,7 +42,7 @@ int32_t tcpConnect(int32_t sockfd, const char *ip, uint16_t port)
     return sockfd;
 }
 
-bool tcpSendData(int32_t sockfd, const uint8_t *data, uint32_t len)
+bool tcpSendData(int32_t sockfd, const char *data, uint32_t len)
 {
     bool retVal = send(sockfd, data, len, 0) == len;
     if(!retVal)
@@ -52,7 +53,35 @@ bool tcpSendData(int32_t sockfd, const uint8_t *data, uint32_t len)
     return retVal;
 }
 
-int32_t tcpRecvData(int32_t sockfd, uint8_t *data, uint32_t len)
+int32_t tcpRecvData(int32_t sockfd, char *data, uint32_t len)
 {
-    return recv(sockfd, data, len, 0);
+    struct pollfd pfds;
+    pfds.fd = sockfd;
+    pfds.events = POLLIN;
+
+    nfds_t nfds = 1;
+    uint32_t retVal = 0;
+
+    int retPoll = poll(&pfds, nfds, 100);
+
+
+    if (retPoll > 0) {
+        if (pfds.revents & POLLIN) {
+            retVal = recv(sockfd, data, len, 0);
+        }
+        else {
+            ESP_LOGE(LOG_TAG, "Error during poll");
+            retVal = -1;
+        }
+    }
+    else if (retPoll == 0) {
+        ESP_LOGE(LOG_TAG, "Timeout during poll");
+        retVal = -1;
+    }
+    else if (retPoll == -1) {
+        ESP_LOGE(LOG_TAG, "Error during poll");
+        retVal = -1;
+    }
+
+    return retVal;
 }

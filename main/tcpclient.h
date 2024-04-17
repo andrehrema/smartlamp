@@ -24,7 +24,7 @@ int32_t tcpConnect(int32_t sockfd, const char *ip, uint16_t port);
  * @return true when correctly sent
  * @return false when incorrectly sent
  */
-bool tcpSendData(int32_t sockfd, const uint8_t *data, uint32_t len);
+bool tcpSendData(int32_t sockfd, const char *data, uint32_t len);
 /**
  * @brief 
  * 
@@ -33,6 +33,6 @@ bool tcpSendData(int32_t sockfd, const uint8_t *data, uint32_t len);
  * @param len 
  * @return int32_t 
  */
-int32_t tcpRecvData(int32_t sockfd, uint8_t *data, uint32_t len);
+int32_t tcpRecvData(int32_t sockfd, char *data, uint32_t len);
 
 #endif // TCPCLIENT_H

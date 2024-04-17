@@ -5,6 +5,7 @@
         "err.h": "c",
         "socket": "c",
         "functional": "c",
-        "sockets.h": "c"
+        "sockets.h": "c",
+        "poll.h": "c"
     }
 }

@@ -19,7 +19,8 @@
 #define WIFI_FAIL_BIT BIT3
 #define RECEIVED_IP BIT4
 
-#define MQTT_BROKER_ADDRESS "192.168.10.1"
+#define MQTT_BROKER_ADDRESS "192.168.0.10"
+#define REQACK "REQACK"
 
 static const char *TAG = "wifi station";
 
@@ -138,6 +139,7 @@ void configureWifi()
 void smartLampMainTask(void *pvParameters)
 {
     int tcpSocketFd = tcpCreateClientSocket(MQTT_BROKER_ADDRESS, 8883);
+    char recBuffer[256] = {0};
     while (1)
     {
         xEventGroupWaitBits(s_wifiEventGroup,
@@ -147,6 +149,14 @@ void smartLampMainTask(void *pvParameters)
         portMAX_DELAY);
 
         //TODO: Implement an mqtt communication
+
+        ESP_LOGI("smartLampMainTask", "Sending REQACK");
+        tcpSendData(tcpSocketFd, REQACK, 7);
+        if(-1 != tcpRecvData(tcpSocketFd, recBuffer, 256))
+        {
+            ESP_LOGI("smartLampMainTask", "Received: %s", recBuffer);
+            memset(recBuffer, 0, 256);
+        }
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
