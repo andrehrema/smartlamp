@@ -28,7 +28,7 @@ static const char *TAG = "wifi station";
 static EventGroupHandle_t s_wifiEventGroup;
 static ip_event_got_ip_t s_ipAddress;
 
-static void eventHandler(void* handler_arg, esp_event_base_t base, int32_t id, void* event_data)
+static void eventHandler(void *handler_arg, esp_event_base_t base, int32_t id, void *event_data)
 {
     if (WIFI_EVENT == base && WIFI_EVENT_STA_START == id)
     {
@@ -37,40 +37,40 @@ static void eventHandler(void* handler_arg, esp_event_base_t base, int32_t id, v
     }
     else if (WIFI_EVENT == base && WIFI_EVENT_SCAN_DONE == id)
     {
-        ESP_LOGI(TAG,"WiFi scan done\n");
+        ESP_LOGI(TAG, "WiFi scan done\n");
         xEventGroupSetBits(s_wifiEventGroup, WIFI_SCAN_BIT);
     }
     else if (WIFI_EVENT == base && WIFI_EVENT_STA_CONNECTED == id)
     {
-        ESP_LOGI(TAG,"WiFi connected\n");
+        ESP_LOGI(TAG, "WiFi connected\n");
         xEventGroupSetBits(s_wifiEventGroup, WIFI_CONNECTED_BIT);
     }
     else if (WIFI_EVENT == base && WIFI_EVENT_STA_DISCONNECTED == id)
     {
-        ESP_LOGI(TAG,"WiFi disconnected\n");
+        ESP_LOGI(TAG, "WiFi disconnected\n");
         xEventGroupClearBits(s_wifiEventGroup, WIFI_CONNECTED_BIT);
     }
     else if (IP_EVENT == base && IP_EVENT_STA_GOT_IP == id)
     {
-        ip_event_got_ip_t* ipAddress = (ip_event_got_ip_t*) event_data;
+        ip_event_got_ip_t *ipAddress = (ip_event_got_ip_t *)event_data;
         s_ipAddress = *ipAddress;
-        ESP_LOGI(TAG,"Got IP address: %d.%d.%d.%d", IP2STR(&s_ipAddress.ip_info.ip));
+        ESP_LOGI(TAG, "Got IP address: %d.%d.%d.%d", IP2STR(&s_ipAddress.ip_info.ip));
         xEventGroupSetBits(s_wifiEventGroup, RECEIVED_IP);
     }
     else if (IP_EVENT == base && IP_EVENT_STA_LOST_IP)
     {
-        ESP_LOGI(TAG,"Lost IP address\n");
+        ESP_LOGI(TAG, "Lost IP address\n");
         xEventGroupClearBits(s_wifiEventGroup, RECEIVED_IP);
     }
     else
     {
-        ESP_LOGI(TAG,"Unknown event\n");
+        ESP_LOGI(TAG, "Unknown event\n");
     }
 }
 
 void initiateNetInterface(void)
 {
-    ESP_LOGI(TAG,"Configuring WiFi STA mode...\n");
+    ESP_LOGI(TAG, "Configuring WiFi STA mode...\n");
 
     /*
         Following initialization procedure defined by Espressif:
@@ -113,8 +113,7 @@ void configureWifi()
             .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
             .threshold.rssi = -127,
             .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-        }
-    };
+        }};
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfigSta));
 
@@ -123,17 +122,17 @@ void configureWifi()
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
     xEventGroupWaitBits(s_wifiEventGroup,
-        WIFI_START_BIT | WIFI_SCAN_BIT,
-        pdFALSE,
-        pdTRUE,
-        portMAX_DELAY);
+                        WIFI_START_BIT | WIFI_SCAN_BIT,
+                        pdFALSE,
+                        pdTRUE,
+                        portMAX_DELAY);
     ESP_ERROR_CHECK(esp_wifi_connect());
 
     xEventGroupWaitBits(s_wifiEventGroup,
-        WIFI_CONNECTED_BIT | RECEIVED_IP,
-        pdFALSE,
-        pdTRUE,
-        portMAX_DELAY);
+                        WIFI_CONNECTED_BIT | RECEIVED_IP,
+                        pdFALSE,
+                        pdTRUE,
+                        portMAX_DELAY);
 }
 
 void smartLampMainTask(void *pvParameters)
@@ -143,16 +142,16 @@ void smartLampMainTask(void *pvParameters)
     while (1)
     {
         xEventGroupWaitBits(s_wifiEventGroup,
-        WIFI_CONNECTED_BIT,
-        pdFALSE,
-        pdTRUE,
-        portMAX_DELAY);
+                            WIFI_CONNECTED_BIT,
+                            pdFALSE,
+                            pdTRUE,
+                            portMAX_DELAY);
 
-        //TODO: Implement an mqtt communication
+        // TODO: Implement an mqtt communication
 
         ESP_LOGI("smartLampMainTask", "Sending REQACK");
         tcpSendData(tcpSocketFd, REQACK, 7);
-        if(-1 != tcpRecvData(tcpSocketFd, recBuffer, 256))
+        if (-1 != tcpRecvData(tcpSocketFd, recBuffer, 256))
         {
             ESP_LOGI("smartLampMainTask", "Received: %s", recBuffer);
             memset(recBuffer, 0, 256);
@@ -165,7 +164,7 @@ void smartLampMainTask(void *pvParameters)
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
-    if(ESP_OK != ret)
+    if (ESP_OK != ret)
     {
         ESP_LOGE("NVS", "Error initializing NVS");
         ESP_ERROR_CHECK(nvs_flash_erase());
