@@ -4,7 +4,10 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../esp-idf/components/**"
+                "${workspaceFolder}/main/**",
+                "/opt/esp/esp-idf/components/**",
+                "/opt/esp/esp-idf/components/xtensa/include/**",
+                "/opt/esp/esp-idf/components/xtensa/esp32/include/xtensa/config/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -6,6 +6,28 @@
         "socket": "c",
         "functional": "c",
         "sockets.h": "c",
-        "poll.h": "c"
-    }
+        "poll.h": "c",
+        "stdint.h": "c",
+        "event_groups.h": "c",
+        "tcpclient.h": "c",
+        "esp_log.h": "c",
+        "freertos.h": "c",
+        "portable.h": "c",
+        "inet.h": "c"
+    },
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.formatOnType": true,
+    // Include rule to execute clang-tidy on save
+    "editor.codeActionsOnSave": {
+        "source.fixAll.clang-tidy": true
+    },
+    "C_Cpp.codeAnalysis.clangTidy.path": "/usr/bin/clang-tidy",
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "C_Cpp.codeAnalysis.runAutomatically": true,
+    "C_Cpp.codeAnalysis.excludeFiles": [
+        "**/build/**",
+        "**/.vscode/**",
+        "/opt/esp/esp-idf/components/**"
+    ]
 }
