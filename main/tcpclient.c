@@ -19,9 +19,8 @@
 int32_t tcpCreateClientSocket(const char* ip, uint16_t port)
 {
     int32_t sockfd;
-    struct sockaddr_in serverAddr;
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sockfd < 0)
     {
         ESP_LOGE(LOG_TAG, "Error during socket instance creation");
@@ -62,17 +61,19 @@ int32_t tcpConnect(int32_t sockfd, const char* ip, uint16_t port)
 /**
  * @brief Send data via tcp socket
  *
- * @param sockfd socket file descriptor
+ * @param sockfd pointer to socket file descriptor
  * @param data data to be sent
  * @param len size of the data
  * @return true data correctly sent
  * @return false data incorrectly sent
  */
-bool tcpSendData(int32_t sockfd, const char* data, uint32_t len)
+bool tcpSendData(int32_t* sockfd, const char* data, uint32_t len)
 {
-    bool retVal = send(sockfd, data, len, 0) == len;
+    bool retVal = send(*sockfd, data, len, 0) == len;
     if (!retVal)
     {
+        close(*sockfd);
+        *sockfd = -1;
         ESP_LOGE(LOG_TAG, "Error sending packet");
     }
 
@@ -82,43 +83,43 @@ bool tcpSendData(int32_t sockfd, const char* data, uint32_t len)
 /**
  * @brief Receive data via tcp socket
  *
- * @param sockfd socket file descriptor
+ * @param sockfd pointer to socket file descriptor
  * @param data data to be received
  * @param len size of the data
  * @return int32_t size of the received data
  */
-int32_t tcpRecvData(int32_t sockfd, char* data, uint32_t len)
+int32_t tcpRecvData(int32_t* sockfd, char* data, uint32_t len)
 {
     struct pollfd pfds;
-    pfds.fd = sockfd;
+    pfds.fd = *sockfd;
     pfds.events = POLLIN;
 
     nfds_t nfds = 1;
-    uint32_t retVal = 0;
+    bool retVal = false;
 
     int retPoll = poll(&pfds, nfds, 100);
 
-    if (retPoll > 0)
+    // Data received
+    if (retPoll > 0 && pfds.revents == POLLIN)
     {
-        if (pfds.revents & POLLIN)
+        if (-1 == recv(*sockfd, data, len, 0))
         {
-            retVal = recv(sockfd, data, len, 0);
+            ESP_LOGE(LOG_TAG, "Error during data reception");
+            close(*sockfd);
+            *sockfd = -1;
         }
         else
         {
-            ESP_LOGE(LOG_TAG, "Error during poll");
-            retVal = -1;
+            retVal = true;
         }
     }
     else if (retPoll == 0)
     {
         ESP_LOGE(LOG_TAG, "Timeout during poll");
-        retVal = -1;
     }
     else if (retPoll == -1)
     {
         ESP_LOGE(LOG_TAG, "Error during poll");
-        retVal = -1;
     }
 
     return retVal;

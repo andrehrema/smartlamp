@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 import sys
 import socket
+import argparse
 
 if __name__ == '__main__':
-    print('This is a test file for socket server')
+
+    argparse = argparse.ArgumentParser()
+    argparse.add_argument('--ip', type=str, default='192.168.0.15',
+                        help='IP address of the server')
+    argparse.add_argument('--port', type=int, default=8883, help='Port number of the server')
+    args = argparse.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = ('192.168.0.10', 8883)
+    server_address = (args.ip, args.port)
     sock.bind(server_address)
 
     sock.listen(1)
@@ -18,7 +24,7 @@ if __name__ == '__main__':
             while True:
                 data = connection.recv(1024).decode('utf-8')
                 print('Received:', data)
-                if data == 'REQACK':
+                if data == "REQACK":
                     print('Sending acknowledge to the client')
                     connection.sendall(b'ACK')
                 elif data == b'':

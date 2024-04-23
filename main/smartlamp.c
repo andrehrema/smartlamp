@@ -1,15 +1,15 @@
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
-#include "esp_netif.h"
 #include "esp_event.h"
-#include "esp_wifi_default.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include "esp_netif_types.h"
 #include "esp_log.h"
+#include "esp_netif.h"
+#include "esp_netif_types.h"
+#include "esp_wifi.h"
+#include "esp_wifi_default.h"
+#include "esp_wifi_types.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
 #include "nvs_flash.h"
+#include <stdio.h>
 
 #include "tcpclient.h"
 
@@ -19,16 +19,16 @@
 #define WIFI_FAIL_BIT BIT3
 #define RECEIVED_IP BIT4
 
-#define MQTT_BROKER_ADDRESS "192.168.0.10"
 #define REQACK "REQACK"
 
-static const char *TAG = "wifi station";
+static const char* TAG = "wifi station";
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifiEventGroup;
 static ip_event_got_ip_t s_ipAddress;
 
-static void eventHandler(void *handler_arg, esp_event_base_t base, int32_t id, void *event_data)
+static void eventHandler(void* handler_arg, esp_event_base_t base, int32_t id,
+                         void* event_data)
 {
     if (WIFI_EVENT == base && WIFI_EVENT_STA_START == id)
     {
@@ -52,9 +52,10 @@ static void eventHandler(void *handler_arg, esp_event_base_t base, int32_t id, v
     }
     else if (IP_EVENT == base && IP_EVENT_STA_GOT_IP == id)
     {
-        ip_event_got_ip_t *ipAddress = (ip_event_got_ip_t *)event_data;
+        ip_event_got_ip_t* ipAddress = (ip_event_got_ip_t*)event_data;
         s_ipAddress = *ipAddress;
-        ESP_LOGI(TAG, "Got IP address: %d.%d.%d.%d", IP2STR(&s_ipAddress.ip_info.ip));
+        ESP_LOGI(TAG, "Got IP address: %d.%d.%d.%d",
+                 IP2STR(&s_ipAddress.ip_info.ip));
         xEventGroupSetBits(s_wifiEventGroup, RECEIVED_IP);
     }
     else if (IP_EVENT == base && IP_EVENT_STA_LOST_IP)
@@ -93,27 +94,20 @@ void configureWifi()
         esp_event_handler is a legacy function.
         The new one is esp_event_handler_instance_register
     */
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &eventHandler,
-                                                        NULL,
-                                                        NULL));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-                                                        IP_EVENT_STA_GOT_IP,
-                                                        &eventHandler,
-                                                        NULL,
-                                                        NULL));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT, ESP_EVENT_ANY_ID, &eventHandler, NULL, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        IP_EVENT, IP_EVENT_STA_GOT_IP, &eventHandler, NULL, NULL));
 
     // configure WiFi
-    wifi_config_t wifiConfigSta = {
-        .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD,
-            .scan_method = WIFI_FAST_SCAN,
-            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
-            .threshold.rssi = -127,
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
-        }};
+    wifi_config_t wifiConfigSta = {.sta = {
+                                       .ssid = CONFIG_WIFI_SSID,
+                                       .password = CONFIG_WIFI_PASSWORD,
+                                       .scan_method = WIFI_FAST_SCAN,
+                                       .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
+                                       .threshold.rssi = -127,
+                                       .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+                                   }};
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifiConfigSta));
 
@@ -121,40 +115,39 @@ void configureWifi()
 
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
-    xEventGroupWaitBits(s_wifiEventGroup,
-                        WIFI_START_BIT | WIFI_SCAN_BIT,
-                        pdFALSE,
-                        pdTRUE,
-                        portMAX_DELAY);
+    xEventGroupWaitBits(s_wifiEventGroup, WIFI_START_BIT | WIFI_SCAN_BIT,
+                        pdFALSE, pdTRUE, portMAX_DELAY);
     ESP_ERROR_CHECK(esp_wifi_connect());
 
-    xEventGroupWaitBits(s_wifiEventGroup,
-                        WIFI_CONNECTED_BIT | RECEIVED_IP,
-                        pdFALSE,
-                        pdTRUE,
-                        portMAX_DELAY);
+    xEventGroupWaitBits(s_wifiEventGroup, WIFI_CONNECTED_BIT | RECEIVED_IP,
+                        pdFALSE, pdTRUE, portMAX_DELAY);
 }
 
-void smartLampMainTask(void *pvParameters)
+void smartLampMainTask(void* pvParameters)
 {
-    int tcpSocketFd = tcpCreateClientSocket(MQTT_BROKER_ADDRESS, 8883);
-    char recBuffer[256] = {0};
+    int32_t tcpSocketFd = -1;
+    char recBuffer[20] = {0};
     while (1)
     {
-        xEventGroupWaitBits(s_wifiEventGroup,
-                            WIFI_CONNECTED_BIT,
-                            pdFALSE,
-                            pdTRUE,
-                            portMAX_DELAY);
+        xEventGroupWaitBits(s_wifiEventGroup, WIFI_CONNECTED_BIT, pdFALSE,
+                            pdTRUE, portMAX_DELAY);
 
         // TODO: Implement an mqtt communication
-
-        ESP_LOGI("smartLampMainTask", "Sending REQACK");
-        tcpSendData(tcpSocketFd, REQACK, 7);
-        if (-1 != tcpRecvData(tcpSocketFd, recBuffer, 256))
+        if (tcpSocketFd == -1)
         {
-            ESP_LOGI("smartLampMainTask", "Received: %s", recBuffer);
-            memset(recBuffer, 0, 256);
+            ESP_LOGE("smartLampMainTask", "Socket unavailable");
+            tcpSocketFd =
+                tcpCreateClientSocket(CONFIG_MQTT_BROKER_IP, CONFIG_MQTT_PORT);
+        }
+        else
+        {
+            ESP_LOGI("smartLampMainTask", "Sending REQACK");
+            if (tcpSendData(&tcpSocketFd, REQACK, 6) &&
+                tcpRecvData(&tcpSocketFd, recBuffer, 20))
+            {
+                ESP_LOGI("smartLampMainTask", "Received: %s", recBuffer);
+                memset(recBuffer, 0, 20);
+            }
         }
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
