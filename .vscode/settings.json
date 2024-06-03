@@ -13,14 +13,16 @@
         "esp_log.h": "c",
         "freertos.h": "c",
         "portable.h": "c",
-        "inet.h": "c"
+        "inet.h": "c",
+        "esp_tls.h": "c",
+        "*.test": "c"
     },
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "editor.formatOnType": true,
     // Include rule to execute clang-tidy on save
     "editor.codeActionsOnSave": {
-        "source.fixAll.clang-tidy": true
+        "source.fixAll.clang-tidy": "explicit"
     },
     "C_Cpp.codeAnalysis.clangTidy.path": "/usr/bin/clang-tidy",
     "C_Cpp.codeAnalysis.clangTidy.enabled": true,

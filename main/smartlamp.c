@@ -154,6 +154,14 @@ void smartLampMainTask(void* pvParameters)
     }
 }
 
+void ConfigurationTask(void* pvParameters)
+{
+    while (1)
+    {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -171,5 +179,8 @@ void app_main(void)
     initiateNetInterface();
     configureWifi();
 
-    xTaskCreate(&smartLampMainTask, "smartLampMainTask", 2048, NULL, 5, NULL);
+    xTaskCreate(&ConfigurationTask, "ConfigurationTask", 512, NULL, 5, NULL);
+
+    // xTaskCreate(&smartLampMainTask, "smartLampMainTask", 2048, NULL, 5,
+    // NULL);
 }

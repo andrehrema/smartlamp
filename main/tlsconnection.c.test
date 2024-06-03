@@ -1,0 +1,132 @@
+#include "esp_random.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/debug.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/net.h"
+#include "mbedtls/ssl.h"
+#include "tlsconnection.h"
+
+char publicCertificate[] =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIFyzCCA7OgAwIBAgIUbyjsuvaIMTv0JmljkCdGZ49m5IcwDQYJKoZIhvcNAQEL\n"
+    "BQAwdTELMAkGA1UEBhMCQlIxDzANBgNVBAgMBlBhcmFuYTERMA8GA1UEBwwIQ3Vy\n"
+    "aXRpYmExITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEfMB0GCSqG\n"
+    "SIb3DQEJARYQYWRyY3N2QGdtYWlsLmNvbTAeFw0yNDA0MjkyMzAwMzBaFw0yNTA0\n"
+    "MjkyMzAwMzBaMHUxCzAJBgNVBAYTAkJSMQ8wDQYDVQQIDAZQYXJhbmExETAPBgNV\n"
+    "BAcMCEN1cml0aWJhMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQx\n"
+    "HzAdBgkqhkiG9w0BCQEWEGFkcmNzdkBnbWFpbC5jb20wggIiMA0GCSqGSIb3DQEB\n"
+    "AQUAA4ICDwAwggIKAoICAQC51dJ884LmpUL2vWnkZ5B16UtHHFMzK/to4SRCQZiT\n"
+    "Geb8HJ8b+f+z419lGBEkRz1WILO/7cdnEXCf/cr5PaTX+lDbdy7lOKagnfB98hRF\n"
+    "URtS5wupLo7QIJRQmz+O8NeFCz9zDiCSXSW0qxFSYn7DXLIfxLjNNecK5lSe7tlU\n"
+    "qscft5Vip6jtnOBgTaZBBqGBouw6e+8+1B5uekzl7nWvSD1DLDUZ5PaRpAf1Oxu6\n"
+    "ypiD1mZzpplq3dSKpnRcIaXsyb+Tl5kfVuwWzCJjdyqXlawg5bGg3ySeStt92xmo\n"
+    "lc8qrGtrokw8IgIc6pTTrnIfdBybgc8rTqb8wCUVteDX8eZ3XLf+XfsEXn5TkYlP\n"
+    "wLApoKEyW0/PZehH+jMeGK3w4GCBar0KioPSS1vMIJmYZfW1MHn1hZjZ+p41TCbE\n"
+    "UkAVd7aE2mxL00cLneVkOTRsXJWFqtsCDbgzjlk7yzMs3+JoPLbN402yHLMNO+CZ\n"
+    "CRWK21ftsA2N53azIIvXorXTJIY0xBPvbK17uAof6+N6qKipncgg5owNarYPnxNv\n"
+    "A8O0BJ4xqZuowzlgMQ0Vlq0YQhoGTLFdhsD2aKiSFir4e/rkt01LLuJ6+pP9u7ag\n"
+    "PcDGuPew7rISGw+xjUIi/pBscETIq1NTG/DLjgapPe7aQWTVtBkRH47UXF7G/Nas\n"
+    "iwIDAQABo1MwUTAdBgNVHQ4EFgQUJ426vpXmZslOhqDoZMnZ9PXvZ9owHwYDVR0j\n"
+    "BBgwFoAUJ426vpXmZslOhqDoZMnZ9PXvZ9owDwYDVR0TAQH/BAUwAwEB/zANBgkq\n"
+    "hkiG9w0BAQsFAAOCAgEAS3cwQDb8tsA2ds/VZw+Srs1Zj1NHn5TYooqYXc69aBib\n"
+    "705L+/LzRHKwuL/wyH44twx+NkB5dpWOoqYRXelbbzMYA6ygQyQpfg6ZMZVKFSlj\n"
+    "M1DiXzgJj7vUvX+bZz1vbSYX0wvcmAq8HToJ6GL5QDSR/pZgqs850GOv38YGhN5E\n"
+    "wpiOrPTwDuTZFlu9Hh24LKf5nM1/DT3+0vaWQ8LRYsLWzMKCbCkALPhGjE42uwmz\n"
+    "KKckPS0IvAQLspz1mGRZ/fg6jNl57IsSHmySkB2WT4sII9vHkKt8V5CwdTgIexBT\n"
+    "6HICKZ5X+uOow9tr7jWiEOMoRz6cLwp63A6u6HfB7w/aCDXyww+C1Wlwva9sK3TE\n"
+    "n8qCp5FhoKKAibwrrCzD6WKsKcSj+fp183y35OWO7vdgErPjzAy9Lam3myrg+z80\n"
+    "5wxNXdPQEaVGn4Ba2kvUPA9PKaJkLjUY15JCwzxADRsGJH5ONyxrgMuzTI/zB+dp\n"
+    "hUhI0IMsQ9FEE1cb7b3r2D7IZ08C9hGHwdcCDeiV+mMspekVbLbW+cXw/k+zSIp2\n"
+    "1AscOFA/aIg3yeWLDWFCW+NnVDRdz0H1VS28rlsdCG8Fn8Qh0EdceaImMgcITzvK\n"
+    "pnC2OjTMunYD84CZFx3F02WiNKgTbsOMSgM7A8LMZVYKaXbJlbV0FRF+kUJbolw=\n"
+    "-----END CERTIFICATE-----";
+
+#define PRIVATE_KEY                                                      \
+    "-----BEGIN PRIVATE KEY-----\n"                                      \
+    "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\n" \
+    "P1oZhRebH3rZpPeGSD+3yiUhsaygZAg=\n"                                 \
+    "-----END PRIVATE KEY-----"
+
+#define TAG "tls connection"
+
+mbedtls_net_context serverFd;
+mbedtls_entropy_context entropy;
+mbedtls_ctr_drbg_context ctrDrbg;
+mbedtls_ssl_context ssl;
+mbedtls_ssl_config conf;
+
+int entropySrcFnct(void* data, unsigned char* output, size_t len, size_t* olen)
+{
+    int randomness = esp_random();
+    return randomness;
+}
+
+int createTlsConnection()
+{
+    mbedtls_net_init(&serverFd);
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+    mbedtls_x509_crt_init(&publicCertificate);
+    mbedtls_ctr_drbg_init(&ctrDrbg);
+
+    mbedtls_entropy_init(&entropy);
+    mbedtls_entropy_add_source(&entropy, entropySrcFnct, NULL, 0, 0);
+    mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy, NULL, 0);
+}
+
+void entropyInitialization()
+{
+}
+
+void setServerFd(int socket_fd)
+{
+    serverFd.fd = socket_fd;
+}

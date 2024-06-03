@@ -1,2 +1,4 @@
 sdkconfig*
 build/
+CMakeCache.txt
+CMakeFiles/
